@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using DarknetImage.Models;
 using System.IO;
@@ -29,16 +28,14 @@ namespace DarknetImage.Controllers
         {
             long size = files.Sum(f => f.Length);
 
-            var filePaths = new List<string>();
+            string filePath = "";
             foreach (var formFile in files)
             {
                 if (formFile.Length > 0)
                 {
-                    var uniqueFileName = Guid.NewGuid().ToString() + formFile.FileName.Substring(formFile.FileName.LastIndexOf(".")).Trim('"');
-                    var uploads = Path.Combine(hostingEnvironment.WebRootPath, "uploads");
-                    var filePath = Path.Combine(uploads, uniqueFileName);
-
-                    filePaths.Add(filePath);
+                    string uniqueFileName = Guid.NewGuid().ToString() + formFile.FileName.Substring(formFile.FileName.LastIndexOf(".")).Trim('"');
+                    string uploads = Path.Combine(hostingEnvironment.WebRootPath, "uploads");
+                    filePath = Path.Combine(uploads, uniqueFileName);
 
                     using (var stream = new FileStream(filePath, FileMode.Create))
                     {
@@ -50,8 +47,22 @@ namespace DarknetImage.Controllers
             // process uploaded files
             // Don't rely on or trust the FileName property without validation.
 
-            return Ok(new { count = files.Count, size, filePaths });
-            //return View();
+            Process p = new Process();
+            p.StartInfo.UseShellExecute = false;
+            p.StartInfo.RedirectStandardOutput = true;
+            p.StartInfo.FileName = "check_image.bat";
+            p.StartInfo.Arguments = filePath;
+            p.Start();
+            string output = p.StandardOutput.ReadToEnd();
+            p.WaitForExit();
+
+            System.IO.File.Delete(filePath);
+
+            ViewData["Message"] = "Knife = " + output.Contains("knife");
+            ViewData["Output"] = output;
+
+            //return Ok(new { count = files.Count, size, filePath, output });
+            return View();
         }
 
         public IActionResult About()
