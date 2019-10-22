@@ -7,6 +7,7 @@ using DarknetImage.Models;
 using System.IO;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Hosting;
+using DarknetImage.Services.Email;
 
 namespace DarknetImage.Controllers
 {
@@ -58,9 +59,17 @@ namespace DarknetImage.Controllers
 
             System.IO.File.Delete(filePath);
 
-            ViewData["Message"] = "Knife = " + output.Contains("knife");
+            bool hasKnife = output.Contains("knife");
+            ViewData["Message"] = "Knife = " + hasKnife;
             ViewData["Output"] = output;
 
+            if(hasKnife)
+            {
+                IEmailService emailService = new EmailService();
+                IFeedbackMessageBuilder feedbackMessageBuilder = new FeedbackMessageBuilder();
+                feedbackMessageBuilder.Build(output);
+                emailService.SendHtml(feedbackMessageBuilder);
+            }
             //return Ok(new { count = files.Count, size, filePath, output });
             return View();
         }
